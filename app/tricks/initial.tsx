@@ -1,16 +1,26 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
+import useGameStore from '@/store/gameStore';
+import { Picker } from '@react-native-picker/picker';
 
 export default function Initial() {
   const [winningScore, setWinningScore] = useState('');
   const router = useRouter();
+  const { setTrickStep, setGame ,game } = useGameStore()
 
   const handleSubmit = () => {
     const score = parseInt(winningScore);
-    if (score >= 1000 && score <= 2000) {
+    if (score >= 1000 && score <= 2000)  {
       console.log('Winning score:', score);
-      
+      setTrickStep('bid')
+      setGame({...game,     
+        gameWinningType: {
+        type: "rounds",
+        winningScore: score,
+        winningRound: null,
+      },})
+      router.push('/tricks/bid');
     }
   };
 
@@ -18,21 +28,26 @@ export default function Initial() {
     <View style={styles.container}>
       <View style={styles.card}>
         <Text style={styles.title}>Set Winning Score</Text>
-        <TextInput
-          style={styles.input}
-          value={winningScore}
-          onChangeText={setWinningScore}
-          keyboardType="numeric"
-          placeholder="Enter score (1000-2000)"
-          placeholderTextColor="#666"
-        />
+        
+        <View style={styles.pickerContainer}>
+          <Picker
+            selectedValue={winningScore}
+            onValueChange={(itemValue) => setWinningScore(itemValue)}
+            style={styles.picker}
+          >
+            <Picker.Item label="1000 points" value="1000" />
+            <Picker.Item label="1500 points" value="1500" />
+            <Picker.Item label="2000 points" value="2000" />
+          </Picker>
+        </View>
+
         <TouchableOpacity
           style={[
             styles.button,
-            (!winningScore || parseInt(winningScore) < 1000 || parseInt(winningScore) > 2000) && styles.buttonDisabled
+            !winningScore && styles.buttonDisabled
           ]}
           onPress={handleSubmit}
-          disabled={!winningScore || parseInt(winningScore) < 1000 || parseInt(winningScore) > 2000}
+          disabled={!winningScore}
         >
           <Text style={styles.buttonText}>Start Game</Text>
         </TouchableOpacity>
@@ -44,57 +59,51 @@ export default function Initial() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#2c8a3d', // Green table color
     justifyContent: 'center',
     alignItems: 'center',
+    padding: 20,
+    backgroundColor: '#1B4332'
   },
   card: {
-    backgroundColor: 'white',
-    borderRadius: 20,
-    padding: 30,
-    width: '80%',
+    backgroundColor: '#2D6A4F',
+    padding: 20,
+    borderRadius: 10,
+    width: '100%',
     maxWidth: 400,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.3,
-    shadowRadius: 4.65,
-    elevation: 8,
+    alignItems: 'center'
   },
   title: {
     fontSize: 24,
     fontWeight: 'bold',
+    color: '#fff',
     marginBottom: 20,
-    color: '#2c3e50',
+    textAlign: 'center'
   },
-  input: {
+  pickerContainer: {
+    backgroundColor: '#fff',
+    borderRadius: 8,
     width: '100%',
-    height: 50,
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 10,
-    paddingHorizontal: 15,
-    fontSize: 18,
-    backgroundColor: '#f8f9fa',
     marginBottom: 20,
+    overflow: 'hidden'
+  },
+  picker: {
+    width: '100%',
+    height: 50
   },
   button: {
-    backgroundColor: '#2196F3',
-    paddingVertical: 12,
-    paddingHorizontal: 30,
-    borderRadius: 10,
-    width: '100%',
+    backgroundColor: '#52B788',
+    padding: 15,
+    borderRadius: 8,
+    width: '100%'
   },
   buttonDisabled: {
-    backgroundColor: '#ccc',
+    backgroundColor: '#95D5B2',
+    opacity: 0.7
   },
   buttonText: {
-    color: 'white',
+    color: '#fff',
     fontSize: 18,
     fontWeight: 'bold',
-    textAlign: 'center',
-  },
+    textAlign: 'center'
+  }
 });

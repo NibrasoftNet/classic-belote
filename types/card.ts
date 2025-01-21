@@ -8,3 +8,10 @@ export type CardType = {
     isPlayable?: boolean;
     onPress?: () => void;
 }
+
+export interface Card {
+    id: string;
+    value: RankType;
+    suit: SuitType;
+    isPlayed: boolean;
+}
