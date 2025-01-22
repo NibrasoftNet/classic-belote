@@ -1,46 +1,122 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Modal, Dimensions } from 'react-native';
-import { SuitType } from '@/types/card';
-import { PlayerType } from '@/types/player';
+import { PlayerSideType, BidType, BiddingModalType, SuitType } from '@/types';
+import { biddingService } from '@/services/biddingService';
+import useGameStore from '@/store/gameStore';
+import { Ionicons } from '@expo/vector-icons';
 
-interface BiddingModalProps {
-  onBid: (suit: SuitType, value: number) => void;
-  onPass: () => void;
-  onContree: () => void;
-  onSurContree: () => void;
-  visible: boolean;
-  currentBidder: PlayerType;
-  lastBid?: number;
-  players: { [key in PlayerType]: { name: string; bid?: { suit: SuitType; value: number } } };
-}
-
-const BiddingModal: React.FC<BiddingModalProps> = ({
-  onBid,
-  onPass,
-  onContree,
-  onSurContree,
+const BiddingModal: React.FC<BiddingModalType> = ({
   visible,
-  currentBidder,
-  lastBid = 80,
-  players = {
-    south: { name: 'South', bid: { suit: '♦', value: 0 } },
-    west: { name: 'West', bid: { suit: '♦', value: 0 } },
-    north: { name: 'North', bid: { suit: '♦', value: 0 } },
-    east: { name: 'East', bid: { suit: '♦', value: 0 } }
-  },
+  setVisible
 }) => {
+  const game = useGameStore(state => state.game);
   const [selectedSuit, setSelectedSuit] = useState<SuitType | null>(null);
-  const [bidValue, setBidValue] = useState(Math.max(90, lastBid + 10));
+  const [bidValue, setBidValue] = useState(80);
+  const [currentBidder, setCurrentBidder] = useState<PlayerSideType>('south');
+  const [bids, setBids] = useState<BidType[]>([]);
+  const [passedPlayers, setPassedPlayers] = useState<PlayerSideType[]>([]);
+  const [contract, setContract] = useState<{
+    team: 'northSouth' | 'eastWest';
+    value: number;
+    isContree: boolean;
+    isSurContree: boolean;
+    suit: SuitType;
+  } | null>(null);
 
   const suits: SuitType[] = ['♠', '♥', '♣', '♦'];
-  const playerOrder: PlayerType[] = ['south', 'west', 'north', 'east'];
+  const playerOrder: PlayerSideType[] = ['south', 'west', 'north', 'east'];
 
   const handleBidValueChange = (increment: boolean) => {
     setBidValue(prev => {
+      const lastBid = bids.length > 0 ? bids[bids.length - 1].value : 80;
       const newValue = increment ? prev + 10 : prev - 10;
       return Math.min(Math.max(newValue, Math.max(90, lastBid + 10)), 180);
     });
   };
+
+  const handleBid = (suit: SuitType, value: number) => {
+    const newBid: BidType = {
+      player: currentBidder,
+      suit,
+      value,
+      passed: false,
+      chosen: false
+    };
+    
+    setBids(prev => [...prev, newBid]);
+    setCurrentBidder(biddingService.getNextPlayer(currentBidder));
+  };
+
+  const handlePass = () => {
+    setPassedPlayers(prev => [...prev, currentBidder]);
+    setCurrentBidder(biddingService.getNextPlayer(currentBidder));
+
+    if (passedPlayers.length === 3) {
+      const winningBid = bids[bids.length - 1];
+      if (winningBid) {
+        const contractTeam = 
+          (winningBid.player === 'north' || winningBid.player === 'south')
+            ? 'northSouth'
+            : 'eastWest';
+        
+        const newContract = {
+          team: contractTeam,
+          value: winningBid.value,
+          isContree: false,
+          isSurContree: false,
+          suit: winningBid.suit
+        };
+      } 
+    }
+  };
+
+  const handleContree = () => {
+    if (!contract) return;
+
+    const isOpposingTeam = (
+      (currentBidder === 'north' || currentBidder === 'south') !== 
+      (contract.team === 'northSouth')
+    );
+
+    if (isOpposingTeam && !contract.isContree) {
+      const newContract = {
+        ...contract,
+        isContree: true
+      };
+      setContract(newContract);
+      setCurrentBidder(biddingService.getNextPlayer(currentBidder));
+    }
+  };
+
+  const handleSurContree = () => {
+    if (!contract) return;
+
+    const isContractTeam = (
+      (currentBidder === 'north' || currentBidder === 'south') === 
+      (contract.team === 'northSouth')
+    );
+
+    if (isContractTeam && contract.isContree && !contract.isSurContree) {
+      const newContract = {
+        ...contract,
+        isSurContree: true
+      };
+      setContract(newContract);
+      setCurrentBidder(biddingService.getNextPlayer(currentBidder));
+    }
+  };
+
+  // Reset state when modal becomes visible
+  useEffect(() => {
+    if (visible) {
+      setCurrentBidder('south');
+      setBids([]);
+      setPassedPlayers([]);
+      setContract(null);
+      setBidValue(80);
+      setSelectedSuit(null);
+    }
+  }, [visible]);
 
   return (
     <Modal visible={visible} transparent animationType="slide">
@@ -57,10 +133,10 @@ const BiddingModal: React.FC<BiddingModalProps> = ({
                       styles.playerName,
                       position === currentBidder && styles.currentBidder
                     ]}>
-                      {players[position]?.name || position}
+                      {position}
                     </Text>
                     <Text style={styles.bidText}>
-                      {players[position]?.bid ? `${players[position].bid.value} ${players[position].bid.suit}` : '0 ♦'}
+                      {'0 ♦'}
                     </Text>
                   </View>
                 </View>
@@ -118,31 +194,37 @@ const BiddingModal: React.FC<BiddingModalProps> = ({
           <View style={styles.bottomSection}>
             <TouchableOpacity
               style={[styles.actionButton, styles.passButton]}
-              onPress={onPass}
+              onPress={handlePass}
             >
               <Text style={styles.passButtonText}>Pass</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
               style={[styles.actionButton, styles.contreeButton]}
-              onPress={onContree}
+              onPress={handleContree}
             >
               <Text style={styles.contreeButtonText}>Contrée</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
               style={[styles.actionButton, styles.surContreeButton]}
-              onPress={onSurContree}
+              onPress={handleSurContree}
             >
               <Text style={styles.surContreeButtonText}>Sur-Contrée</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
               style={[styles.actionButton, styles.bidButton]}
-              onPress={() => selectedSuit && onBid(selectedSuit, bidValue)}
+              onPress={() => selectedSuit && handleBid(selectedSuit, bidValue)}
               disabled={!selectedSuit}
             >
               <Text style={styles.bidButtonText}>Bid</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.closeButton, styles.closeButton]}
+              onPress={() => setVisible(false)}
+            >
+              <Ionicons name="flash-off" size={28} color="white" />
             </TouchableOpacity>
           </View>
         </View>
@@ -300,6 +382,15 @@ const styles = StyleSheet.create({
   },
   bidButton: {
     backgroundColor: '#4CAF50',
+  },
+  closeButton: {
+    backgroundColor: '#F44336',
+    width: 50,
+    height: 50,
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 8,
   },
   actionButtonText: {
     fontSize: 16,

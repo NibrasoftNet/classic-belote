@@ -35,16 +35,3 @@ export interface Trick {
   leadingSuit: string;
   trumpSuit: string;
 }
-
-export interface GameState {
-  currentBid: Bid | null;
-  trumpSuit: string | null;
-  currentTrick: Trick | null;
-  tricks: Trick[];
-  scores: {
-    team1: number;
-    team2: number;
-  };
-  currentPlayer: string;
-  leadPlayer: string;
-}

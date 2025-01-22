@@ -1,368 +1,132 @@
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, Alert, TouchableOpacity, Text } from 'react-native';
 import useGameStore from '@/store/gameStore';
+import { useBidStore } from '@/store/bidStore';
 import PlayerCards from './PlayerCards';
-import PlayerAvatar from './PlayerAvatar';
 import BiddingModal from './BiddingModal';
-import CenterCards from './CenterCards';
-import { Card, GameState, PlayedCard, PlayerHand, PlayerGameState } from '@/types/game';
-import { PlayerType, TeamType } from '@/types/player';
-import { SuitType } from '@/types/card';
-import { convertToCard } from '@/utils/cardUtils';
-import { biddingService } from '@/services/biddingService';
-import { gameService } from '@/services/gameService';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { distributeCards } from '@/utils/distributeCards';
+import CardCardSuitsRedBackground from '../CardSuitsRedBackground';
+import PlayersScoreCard from './PlayersScoreCard';
 
-interface BidType {
-  player: PlayerType;
-  suit: SuitType;
-  value: number;
-  passed: boolean;
-  chosen: boolean;
-}
-
-const GameTable: React.FC = () => {
-  const game = useGameStore(state => state.game);
+const GameTable: React.FC<{ newGame: boolean }> = ({ newGame }) => {
+  const { game, setGame} = useGameStore();
+  const { isDealing, setIsDealing } = useBidStore();
   const [showBiddingModal, setShowBiddingModal] = useState(false);
-  const [bids, setBids] = useState<BidType[]>([]);
-  const [passedPlayers, setPassedPlayers] = useState<PlayerType[]>([]);
-  const [biddingPhase, setBiddingPhase] = useState(true);
-  const [currentBidder, setCurrentBidder] = useState<PlayerType>('south');
 
-  const [playedCards, setPlayedCards] = useState<PlayedCard[]>([]);
-
-  const [currentTurn, setCurrentTurn] = useState<PlayerType>('south');
-  const [leadingSuit, setLeadingSuit] = useState<SuitType | null>(null);
-  const [trumpSuit, setTrumpSuit] = useState<SuitType | null>(null);
-
-  const [isDealing, setIsDealing] = useState(false);
-  const [dealingComplete, setDealingComplete] = useState(false);
-
-  const [scores, setScores] = useState<{
-    northSouth: number;
-    eastWest: number;
-  }>({ northSouth: 0, eastWest: 0 });
-
-  const [contract, setContract] = useState<{
-    team: 'northSouth' | 'eastWest';
-    value: number;
-    isContree: boolean;
-    isSurContree: boolean;
-    suit: SuitType;
-  } | null>(null);
-
-  const [beloteTeam, setBeloteTeam] = useState<'northSouth' | 'eastWest' | null>(null);
-  const [lastRoundWinner, setLastRoundWinner] = useState<'northSouth' | 'eastWest' | null>(null);
-
-  useEffect(() => {
-    startNewGame();
-  }, []);
-
-  useEffect(() => {
-    if (contract?.suit) {
-      setTrumpSuit(contract.suit);
-      if (
-        gameService.hasBeloteRebelote(game.north?.availableCards || [], contract.suit) ||
-        gameService.hasBeloteRebelote(game.south?.availableCards || [], contract.suit)
-      ) {
-        setBeloteTeam('northSouth');
-      } else if (
-        gameService.hasBeloteRebelote(game.east?.availableCards || [], contract.suit) ||
-        gameService.hasBeloteRebelote(game.west?.availableCards || [], contract.suit)
-      ) {
-        setBeloteTeam('eastWest');
-      }
-    }
-  }, [contract?.suit, game]);
-
-  useEffect(() => {
-    if (dealingComplete && biddingPhase) {
-      setShowBiddingModal(true);
-    }
-  }, [dealingComplete, biddingPhase]);
-
-  const handleBid = (suit: SuitType, value: number) => {
-    const newBid: BidType = {
-      player: currentBidder,
-      suit,
-      value,
-      passed: false,
-      chosen: false
-    };
-    
-    setBids(prev => [...prev, newBid]);
-    setCurrentBidder(biddingService.getNextPlayer(currentBidder));
+  const getRandomSuit = () => {
+    const suits = ['cards-club', 'cards-diamond', 'cards-heart', 'cards-spade'];
+    return suits[Math.floor(Math.random() * suits.length)];
   };
 
-  const handlePass = () => {
-    setPassedPlayers(prev => [...prev, currentBidder]);
-    setCurrentBidder(biddingService.getNextPlayer(currentBidder));
-
-    if (passedPlayers.length === 3) {
-      const winningBid = bids[bids.length - 1];
-      if (winningBid) {
-        const contractTeam = 
-          (winningBid.player === 'north' || winningBid.player === 'south')
-            ? 'northSouth'
-            : 'eastWest';
-        
-        setContract({
-          team: contractTeam,
-          value: winningBid.value,
-          isContree: false,
-          isSurContree: false,
-          suit: winningBid.suit
-        });
-
-        setBiddingPhase(false);
-        setShowBiddingModal(false);
-        setCurrentTurn(winningBid.player);
-      } else {
-        startNewGame();
-      }
-    }
-  };
-
-  const handleContree = () => {
-    if (!contract) return;
-
-    const isOpposingTeam = (
-      (currentBidder === 'north' || currentBidder === 'south') !== 
-      (contract.team === 'northSouth')
-    );
-
-    if (isOpposingTeam && !contract.isContree) {
-      setContract({
-        ...contract,
-        isContree: true
-      });
-      setCurrentBidder(biddingService.getNextPlayer(currentBidder));
-    }
-  };
-
-  const handleSurContree = () => {
-    if (!contract) return;
-
-    const isContractTeam = (
-      (currentBidder === 'north' || currentBidder === 'south') === 
-      (contract.team === 'northSouth')
-    );
-
-    if (isContractTeam && contract.isContree && !contract.isSurContree) {
-      setContract({
-        ...contract,
-        isSurContree: true
-      });
-      setCurrentBidder(biddingService.getNextPlayer(currentBidder));
-    }
-  };
-
-  const handleCardPlay = (card: Card, position: PlayerType) => {
-    if (position !== currentTurn || biddingPhase) return;
-
-    if (playedCards.length === 0) {
-      setLeadingSuit(card.suit);
-    }
-
-    setPlayedCards(prev => [...prev, {
-      player: position,
-      card,
-    }]);
-
-    const turns: PlayerType[] = ['south', 'west', 'north', 'east'];
-    const currentIndex = turns.indexOf(currentTurn);
-    const nextTurn = turns[(currentIndex + 1) % 4];
-    setCurrentTurn(nextTurn);
-  };
-
-  const handleTrickComplete = () => {
-    if (!contract || playedCards.length !== 4) return;
-
-    const roundScore = gameService.calculateRoundScore(
-      playedCards,
-      contract.suit,
-      contract,
-      beloteTeam
-    );
-
-    setScores(prev => ({
-      northSouth: prev.northSouth + roundScore.northSouth,
-      eastWest: prev.eastWest + roundScore.eastWest
-    }));
-
-    setLastRoundWinner(
-      roundScore.northSouth > roundScore.eastWest ? 'northSouth' : 'eastWest'
-    );
-
-    const winner = gameService.isGameWinner(scores, lastRoundWinner!);
-    if (winner) {
-      Alert.alert(
-        'Game Over',
-        `${winner === 'northSouth' ? 'North-South' : 'East-West'} team wins!`,
-        [{ text: 'New Game', onPress: startNewGame }]
-      );
-      return;
-    }
-
-    setPlayedCards([]);
-    setLeadingSuit(null);
-  };
-
-  useEffect(() => {
-    if (playedCards.length === 4) {
-      setTimeout(() => {
-        handleTrickComplete();
-      }, 1000);
-    }
-  }, [playedCards]);
-
-  const startNewGame = () => {
+  const handleRedistributeCards = () => {
     setIsDealing(true);
-    
-    // Deal cards to all players
-    const hands = gameService.dealCards();
-    const updatedGame: GameState = {
-      north: {
-        side: 'north',
-        availableCards: hands.north,
-        allowedCards: hands.north,
-        team: 'northSouth',
-        score: 0
-      },
-      south: {
-        side: 'south',
-        availableCards: hands.south,
-        allowedCards: hands.south,
-        team: 'northSouth',
-        score: 0
-      },
-      east: {
-        side: 'east',
-        availableCards: hands.east,
-        allowedCards: hands.east,
-        team: 'eastWest',
-        score: 0
-      },
-      west: {
-        side: 'west',
-        availableCards: hands.west,
-        allowedCards: hands.west,
-        team: 'eastWest',
-        score: 0
-      },
-      gameWinningType: null,
-      winningBid: null,
-      rounds: []
-    };
-    
-    // Update the game store
-    const setGame = useGameStore.getState().setGame;
-    setGame(updatedGame);
-    
-    setPlayedCards([]);
-    setBids([]);
-    setPassedPlayers([]);
-    setCurrentBidder('south');
-    setBiddingPhase(true);
-    setCurrentTurn('south');
-    setLeadingSuit(null);
-    setTrumpSuit(null);
-    setScores({ northSouth: 0, eastWest: 0 });
-    setContract(null);
-    setBeloteTeam(null);
-    setLastRoundWinner(null);
-
+    const players = distributeCards();
+    setGame({
+      ...game,
+      north: players.north,
+      east: players.east,
+      south: players.south,
+      west: players.west
+    });
     setTimeout(() => {
-      setDealingComplete(true);
       setIsDealing(false);
     }, 2000);
   };
 
   return (
     <View style={styles.container}>
+      <CardCardSuitsRedBackground />
       <View style={styles.gameContent}>
+        {/* Players Score Card */}
+        {game.north && game.south && game.east && game.west && (
+          <PlayersScoreCard
+            players={{
+              north: game.north,
+              south: game.south,
+              east: game.east,
+              west: game.west,
+            }}
+          />
+        )}
+        
         {/* North Player */}
         {game.north?.availableCards && (
           <PlayerCards 
-            cards={game.north.availableCards}
+            availableCards={game.north.availableCards}
+            allowedCards={game.north.allowedCards}
+            score={game.north.score}
+            team={game.north.team}
             position="north"
-            isCurrentTurn={currentTurn === 'north'}
-            leadingSuit={leadingSuit}
-            trumpSuit={trumpSuit}
-            onCardPlay={handleCardPlay}
             isDealing={isDealing}
-            dealingComplete={dealingComplete}
           />
         )}
 
         {/* West Player */}
         {game.west?.availableCards && (
           <PlayerCards 
-            cards={game.west.availableCards}
+            availableCards={game.west.availableCards}
+            allowedCards={game.west.allowedCards}
+            score={game.west.score}
+            team={game.west.team}
             position="west"
-            isCurrentTurn={currentTurn === 'west'}
-            leadingSuit={leadingSuit}
-            trumpSuit={trumpSuit}
-            onCardPlay={handleCardPlay}
             isDealing={isDealing}
-            dealingComplete={dealingComplete}
           />
         )}
 
         {/* East Player */}
         {game.east?.availableCards && (
           <PlayerCards 
-            cards={game.east.availableCards}
+            availableCards={game.east.availableCards}
+            allowedCards={game.east.allowedCards}
+            score={game.east.score}
+            team={game.east.team}
             position="east"
-            isCurrentTurn={currentTurn === 'east'}
-            leadingSuit={leadingSuit}
-            trumpSuit={trumpSuit}
-            onCardPlay={handleCardPlay}
             isDealing={isDealing}
-            dealingComplete={dealingComplete}
           />
         )}
-
-        {/* Center Area */}
-        <CenterCards playedCards={playedCards} />
-
         {/* South Player */}
         {game.south?.availableCards && (
           <View style={styles.southSection}>
             <PlayerCards 
-              cards={game.south.availableCards}
+              availableCards={game.south.availableCards}
+              allowedCards={game.south.allowedCards}
+              score={game.south.score}
+              team={game.south.team}
               position="south"
-              isCurrentTurn={currentTurn === 'south'}
-              leadingSuit={leadingSuit}
-              trumpSuit={trumpSuit}
-              onCardPlay={handleCardPlay}
+              isCurrentTurn={true}
               isDealing={isDealing}
-              dealingComplete={dealingComplete}
             />
           </View>
         )}
 
-        {/* Toggle Bidding Button */}
-        <TouchableOpacity 
-          style={styles.toggleButton}
-          onPress={() => setShowBiddingModal(!showBiddingModal)}
-        >
-          <Text style={styles.toggleButtonText}>
-            {showBiddingModal ? 'Hide Bidding' : 'Show Bidding'}
-          </Text>
-        </TouchableOpacity>
-
+        {/* Game Controls */}
+        { 
+          newGame && (
+            <View style={styles.gameControls}>
+              <TouchableOpacity
+                style={styles.controlButton}
+                onPress={() => setShowBiddingModal(!showBiddingModal)}
+              >
+                <Text style={styles.buttonText}>
+                  {showBiddingModal ? <Ionicons name="flash-off" size={28} color="white" /> : <Ionicons name="flash" size={28} color="white" />}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.controlButton}
+                onPress={handleRedistributeCards}
+              >
+                <Text style={styles.buttonText}>
+                  <Ionicons name="shuffle" size={28} color="white" />
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )
+        }
         {/* Bidding Modal */}
         <BiddingModal
           visible={showBiddingModal}
-          onBid={handleBid}
-          onPass={handlePass}
-          onContree={handleContree}
-          onSurContree={handleSurContree}
-          canBid={currentBidder === 'south' && biddingPhase}
-          canContree={false}
-          canSurContree={false}
-          bids={[]} // TODO: Get bids from game state
-          lastBid={80}
+          setVisible={setShowBiddingModal}
         />
       </View>
     </View>
@@ -372,7 +136,9 @@ const GameTable: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#076324',
+    backgroundColor: '#8B0000',
+    position: 'relative',
+    overflow: 'hidden',
   },
   gameContent: {
     flex: 1,
@@ -385,20 +151,32 @@ const styles = StyleSheet.create({
     right: 0,
     alignItems: 'center',
   },
-  toggleButton: {
+  gameControls: {
     position: 'absolute',
-    bottom: 120,
+    bottom: 20,
     right: 20,
+    flexDirection: 'row',
+    gap: 10,
+    zIndex: 1,
+  },
+  controlButton: {
     backgroundColor: '#4CAF50',
     padding: 10,
-    borderRadius: 8,
-    elevation: 3,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
+    borderRadius: 25,
+    borderColor: 'white',
+    borderWidth: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: 'blue',
+    shadowOffset: {
+      width: 10,
+      height: 10,
+    },
+    shadowOpacity: 0.5,
     shadowRadius: 3.84,
+    elevation: 50,
   },
-  toggleButtonText: {
+  buttonText: {
     color: 'white',
     fontSize: 16,
     fontWeight: 'bold',

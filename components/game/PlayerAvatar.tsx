@@ -1,20 +1,16 @@
 import React from 'react';
-import { View, Text, Image, StyleSheet, ImageSourcePropType } from 'react-native';
-import { PlayerType } from '@/types/player';
+import { View, Text, Image, StyleSheet } from 'react-native';
+import { PlayerAvatarType } from '@/types';
 
-interface PlayerAvatarProps {
-  player: PlayerType;
-  position: 'west' | 'north' | 'east';
-  avatar: ImageSourcePropType;
-}
-
-const PlayerAvatar: React.FC<PlayerAvatarProps> = ({ player, position, avatar }) => {
+const PlayerAvatar: React.FC<PlayerAvatarType> = ({ player, position, avatar }) => {
   return (
-    <View style={[styles.container, styles[position]]}>
-      <Image source={avatar} style={styles.avatar} />
+    <View style={styles.container}>
+      <View style={styles.avatarWrapper}>
+        <Image source={avatar} style={styles.avatar} />
+      </View>
       <View style={styles.infoContainer}>
-        <Text style={styles.score}>Score: {player.score}</Text>
-        <Text style={styles.cardCount}>Cards: {player.availableCards.length}</Text>
+        <Text style={styles.score}>{player.score}</Text>
+        <Text style={styles.team}>{player.team}</Text>
       </View>
     </View>
   );
@@ -22,42 +18,38 @@ const PlayerAvatar: React.FC<PlayerAvatarProps> = ({ player, position, avatar })
 
 const styles = StyleSheet.create({
   container: {
-    position: 'absolute',
+    display: 'flex',
+    flexDirection: 'row',
     alignItems: 'center',
-    padding: 10,
+    width: 80,
+    gap: 8,
   },
-  west: {
-    left: 20,
-    top: '50%',
-    transform: [{ translateY: -50 }],
-  },
-  north: {
-    top: 20,
-    left: '50%',
-    transform: [{ translateX: -50 }],
-  },
-  east: {
-    right: 20,
-    top: '50%',
-    transform: [{ translateY: -50 }],
+  avatarWrapper: {
+    width: 50,
+    height: 50,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: 'white',
+    overflow: 'hidden',
+    backgroundColor: '#8B0000',
   },
   avatar: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    marginBottom: 5,
+    width: '100%',
+    height: '100%',
   },
   infoContainer: {
     alignItems: 'center',
+    marginTop: 4,
   },
   score: {
-    color: '#fff',
-    fontSize: 12,
-    marginBottom: 2,
+    color: 'white',
+    fontSize: 14,
+    fontWeight: 'bold',
   },
-  cardCount: {
-    color: '#fff',
+  team: {
+    color: 'rgba(255, 255, 255, 0.8)',
     fontSize: 12,
+    marginTop: 2,
   },
 });
 

@@ -1,5 +1,5 @@
 import { CardType, RankType, SuitType } from "@/types/card";
-import { PlayerType, TeamType } from "@/types/player";
+import { PlayerCardsType, TeamType } from "@/types";
 
 const RANKS: RankType[] = ['7', '8', '9', '10', 'J', 'Q', 'K', 'A'];
 const SUITS: SuitType[] = ['♥', '♦', '♣', '♠'];
@@ -7,9 +7,11 @@ const SUITS: SuitType[] = ['♥', '♦', '♣', '♠'];
 // Generate a deck of 32 cards
 const generateDeck = (): CardType[] => {
     const deck: CardType[] = [];
+    let id = 1;
     for (const suit of SUITS) {
         for (const rank of RANKS) {
             deck.push({
+                id: id++,
                 rank,
                 suit,
                 faceUp: false,
@@ -31,10 +33,10 @@ const shuffleArray = <T>(array: T[]): T[] => {
 
 // Distribute cards to players
 export const distributeCards = (): {
-    north: PlayerType;
-    east: PlayerType;
-    south: PlayerType;
-    west: PlayerType;
+    north: PlayerCardsType;
+    east: PlayerCardsType;
+    south: PlayerCardsType;
+    west: PlayerCardsType;
 } => {
     // Generate and shuffle deck
     const deck = shuffleArray(generateDeck());
@@ -47,28 +49,28 @@ export const distributeCards = (): {
 
     return {
         north: {
-            side: 'north',
+            position: 'north',
             availableCards: northCards,
             allowedCards: [],
             team: 'NS',
             score: 0
         },
         east: {
-            side: 'east',
+            position: 'east',
             availableCards: eastCards,
             allowedCards: [],
             team: 'EW',
             score: 0
         },
         south: {
-            side: 'south',
+            position: 'south',
             availableCards: southCards,
             allowedCards: [],
             team: 'NS',
             score: 0
         },
         west: {
-            side: 'west',
+            position: 'west',
             availableCards: westCards,
             allowedCards: [],
             team: 'EW',

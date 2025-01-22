@@ -8,7 +8,6 @@ export default function Initial() {
   const [winningScore, setWinningScore] = useState('');
   const router = useRouter();
   const { setTrickStep, setGame ,game } = useGameStore()
-
   const handleSubmit = () => {
     const score = parseInt(winningScore);
     if (score >= 1000 && score <= 2000)  {
@@ -28,7 +27,6 @@ export default function Initial() {
     <View style={styles.container}>
       <View style={styles.card}>
         <Text style={styles.title}>Set Winning Score</Text>
-        
         <View style={styles.pickerContainer}>
           <Picker
             selectedValue={winningScore}
@@ -40,7 +38,6 @@ export default function Initial() {
             <Picker.Item label="2000 points" value="2000" />
           </Picker>
         </View>
-
         <TouchableOpacity
           style={[
             styles.button,
