@@ -11,24 +11,24 @@ const PlayersScoreCard: React.FC<PlayersScoreCardProps> = ({ players }) => {
         <PlayerAvatar
           player={players.north}
           position="north"
-          avatar={avatar001}
+          avatar={players.north.avatar}
         />
         <PlayerAvatar
           player={players.south}
           position="east"
-          avatar={avatar002}
+          avatar={players.south.avatar}
         />
       </View>
       <View style={styles.row}>
         <PlayerAvatar
           player={players.west}
           position="west"
-          avatar={avatar003}
+          avatar={players.west.avatar}
         />
         <PlayerAvatar
           player={players.east}
           position="east"
-          avatar={avatar004}
+          avatar={players.east.avatar}
         />
       </View>
     </View>
@@ -38,7 +38,7 @@ const PlayersScoreCard: React.FC<PlayersScoreCardProps> = ({ players }) => {
 const styles = StyleSheet.create({
   container: {
     position: 'absolute',
-    top: 5,
+    top: 1,
     right: 100,
     backgroundColor: 'rgba(139, 0, 0, 0.9)',
     borderRadius: 10,

@@ -1,7 +1,5 @@
 import { create } from "zustand";
-import { GameType, TrickStep, BidType, RoundType, GameWiningType } from "@/types/game";
-import { PlayerType, PlayerSideType, TeamType } from "@/types/player";
-import { CardType, SuitType, RankType } from "@/types/card";
+import { GameType, TrickStep } from "@/types/game";
 
 // Define the store type
 type GameStore = {
@@ -19,33 +17,32 @@ const useGameStore = create<GameStore>((set) => ({
     gameWinningType: {
       type: "rounds", // Default winning type
       winningScore: 1000, // Default winning score
-      winningRound: 10, // Default winning round
+      winningRound: 3, // Default winning round
     },
-    winningBid: null,
     rounds: [], // No rounds played yet
     west: {
-      side: "west",
+      position: "west",
       availableCards: [],
       allowedCards: [],
       team: "EW",
       score: 0,
     },
     north: {
-      side: "north",
+      position: "north",
       availableCards: [],
       allowedCards: [],
       team: "NS",
       score: 0,
     },
     east: {
-      side: "east",
+      position: "east",
       availableCards: [],
       allowedCards: [],
       team: "EW",
       score: 0,
     },
     south: {
-      side: "south",
+      position: "south",
       availableCards: [],
       allowedCards: [],
       team: "NS",

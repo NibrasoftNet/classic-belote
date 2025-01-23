@@ -1,8 +1,7 @@
 import { CardType, RankType, SuitType } from "@/types/card";
 import { PlayerCardsType, TeamType } from "@/types";
-
-const RANKS: RankType[] = ['7', '8', '9', '10', 'J', 'Q', 'K', 'A'];
-const SUITS: SuitType[] = ['♥', '♦', '♣', '♠'];
+import { avatarImages } from "@/constants/avatars";
+import { RANKS, SUITS } from "@/constants/cards";
 
 // Generate a deck of 32 cards
 const generateDeck = (): CardType[] => {
@@ -47,34 +46,41 @@ export const distributeCards = (): {
     const southCards = deck.slice(16, 24);
     const westCards = deck.slice(24, 32);
 
+    // Randomly assign avatars
+    const avatars = shuffleArray([...avatarImages]);
+
     return {
         north: {
             position: 'north',
             availableCards: northCards,
             allowedCards: [],
             team: 'NS',
-            score: 0
+            score: 0,
+            avatar: avatars[0]
         },
         east: {
             position: 'east',
             availableCards: eastCards,
             allowedCards: [],
             team: 'EW',
-            score: 0
+            score: 0,
+            avatar: avatars[1]
         },
         south: {
             position: 'south',
             availableCards: southCards,
             allowedCards: [],
             team: 'NS',
-            score: 0
+            score: 0,
+            avatar: avatars[2]
         },
         west: {
             position: 'west',
             availableCards: westCards,
             allowedCards: [],
             team: 'EW',
-            score: 0
+            score: 0,
+            avatar: avatars[3]
         }
     };
 };

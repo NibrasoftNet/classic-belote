@@ -20,6 +20,7 @@ export type PlayerCardsType = {
     allowedCards: CardType[];
     team: TeamType;
     score: number;
+    avatar?: ImageSourcePropType;
     isCurrentTurn?: boolean;
     leadingSuit?: SuitType | null;
     trumpSuit?: SuitType | null;
@@ -36,9 +37,3 @@ export type  ActualPlayerProps = {
   color: string;
   isRedSuit: boolean;
 }
-
-export type PlayerAvatarType = {
-    player: PlayerCardsType;
-    position: 'west' | 'north' | 'east';
-    avatar: ImageSourcePropType;
-  }

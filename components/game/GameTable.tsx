@@ -2,22 +2,18 @@ import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, Alert, TouchableOpacity, Text } from 'react-native';
 import useGameStore from '@/store/gameStore';
 import { useBidStore } from '@/store/bidStore';
-import PlayerCards from './PlayerCards';
+import PlayerCards from './player/PlayerCards';
 import BiddingModal from './BiddingModal';
-import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import CenterCards from './card/CenterCards';
+import { Ionicons } from '@expo/vector-icons';
 import { distributeCards } from '@/utils/distributeCards';
 import CardCardSuitsRedBackground from '../CardSuitsRedBackground';
-import PlayersScoreCard from './PlayersScoreCard';
+import PlayersScoreCard from './player/PlayersScoreCard';
 
 const GameTable: React.FC<{ newGame: boolean }> = ({ newGame }) => {
   const { game, setGame} = useGameStore();
   const { isDealing, setIsDealing } = useBidStore();
   const [showBiddingModal, setShowBiddingModal] = useState(false);
-
-  const getRandomSuit = () => {
-    const suits = ['cards-club', 'cards-diamond', 'cards-heart', 'cards-spade'];
-    return suits[Math.floor(Math.random() * suits.length)];
-  };
 
   const handleRedistributeCards = () => {
     setIsDealing(true);
@@ -37,6 +33,7 @@ const GameTable: React.FC<{ newGame: boolean }> = ({ newGame }) => {
   return (
     <View style={styles.container}>
       <CardCardSuitsRedBackground />
+      <CenterCards />
       <View style={styles.gameContent}>
         {/* Players Score Card */}
         {game.north && game.south && game.east && game.west && (
